@@ -2,12 +2,40 @@
 #include <math.h>
 #include <gsl/gsl_sf_erf.h>
 
+#define LOGSCALE 100000
+#define DIVSCALE 1000
+unsigned int logdata[LOGSCALE] = {0};
+unsigned int logdata1[LOGSCALE] = {0};
+void compute_log() {
+	float i;
+	for (i = 0; i < LOGSCALE; i++) {
+		logdata[(int)i] = log(i/DIVSCALE)*DIVSCALE;
+		logdata1[(int)i] = (DIVSCALE*pow(0.01, (double)i/DIVSCALE));
+	}
+}
+
+unsigned long inverse_pareto1(double alpha, double xm) {
+	unsigned long alpha1 = alpha;
+	unsigned long xm1 = xm;
+	return xm1*DIVSCALE/logdata1[(DIVSCALE/alpha1)%LOGSCALE];
+}
+
 double compute_alpha(double *data, int n, double xm) {
     double sum_log = 0.0;
     for (int i = 0; i < n; i++) {
-        sum_log += log(data[i] / xm);
+            sum_log += log(data[i] / xm);
     }
     return (double)n / sum_log;
+}
+
+unsigned long compute_alpha1(double *data, int n, double xm) {
+    unsigned long sum_log1 = 0;
+    for (int i = 0; i < n; i++) {
+	    unsigned long data1 = data[i];
+	    unsigned long xm1 = xm;
+	    sum_log1 += logdata[((int)(data1*DIVSCALE/xm1))%LOGSCALE];
+    }
+    return n*DIVSCALE/sum_log1;
 }
 
 double compute_xm(double *data, int n) {
@@ -105,13 +133,14 @@ double inverse_exp(double p, double lambda) {
 }
 
 double inverse_pareto(double p, double alpha, double xm) {
+	double pow1 = pow(1 - p, 1 / alpha); 
     return xm / pow(1 - p, 1 / alpha);  // Quantile for Pareto distribution
 }
 
 
 int main() {
     int n;
-
+    compute_log();
     // Input number of elements
     // printf("Enter the number of elements: ");
     scanf("%d", &n);
@@ -138,6 +167,7 @@ int main() {
     // Compute parameters
     double xm = compute_xm(data, n);
     double alpha = compute_alpha(data, n, xm);
+    unsigned long alpha1 = compute_alpha1(data, n, xm);
     double mean = compute_mean(data, n);
     double stddev = compute_stddev(data, n, mean);
     double lambda = compute_lambda(data, n);
@@ -150,7 +180,7 @@ int main() {
 
     // Output the results
     printf("Estimated xm for Pareto: %.5lf\n", xm);
-    printf("Estimated alpha for Pareto: %.5lf\n", alpha);
+    printf("Estimated alpha for Pareto: %.5lf alpha1 %lu\n", alpha, alpha1);
     printf("Estimated lambda for Exponential: %.5lf\n", 1.0 / mean);
     printf("Estimated lambda for Poisson: %.5lf\n", lambda);
     printf("Estimated mean for Normal: %.5lf\n", mean);
@@ -167,7 +197,7 @@ int main() {
     int poisson_quantile = inverse_poisson(probability, lambda);
     double pareto_quantile = inverse_pareto(probability, alpha, xm);
     double exp_quantile = inverse_exp(probability, 1.0/mean);
-
+    unsigned int pareto_quantile1 = inverse_pareto1(alpha1, xm);
 
 
     double best_fit = ll_exponential;
@@ -190,7 +220,7 @@ int main() {
 	quantile = pareto_quantile;
     }
 
-    printf("Best fit distribution: %s %f\n", best_fit_name, quantile);
+    printf("Best fit distribution: %s %f %lu\n", best_fit_name, quantile, pareto_quantile1);
 
     return 0;
 }
