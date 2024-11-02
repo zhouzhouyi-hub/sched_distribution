@@ -2,8 +2,9 @@
 #include <math.h>
 #include <gsl/gsl_sf_erf.h>
 
-#define LOGSCALE 100000
-#define DIVSCALE 1000
+#define LOGSCALE 1000000
+#define DIVSCALE 100000
+#define ALPHASCALE 10
 unsigned int logdata[LOGSCALE] = {0};
 unsigned int logdata1[LOGSCALE] = {0};
 void compute_log() {
@@ -14,10 +15,9 @@ void compute_log() {
 	}
 }
 
-unsigned long inverse_pareto1(double alpha, double xm) {
-	unsigned long alpha1 = alpha;
-	unsigned long xm1 = xm;
-	return xm1*DIVSCALE/logdata1[(DIVSCALE/alpha1)%LOGSCALE];
+unsigned long inverse_pareto1(unsigned long alpha1, double xm) {
+	unsigned long xm1 = xm*DIVSCALE;
+	return xm1/logdata1[(DIVSCALE*ALPHASCALE/alpha1)%LOGSCALE];
 }
 
 double compute_alpha(double *data, int n, double xm) {
@@ -35,7 +35,7 @@ unsigned long compute_alpha1(double *data, int n, double xm) {
 	    unsigned long xm1 = xm;
 	    sum_log1 += logdata[((int)(data1*DIVSCALE/xm1))%LOGSCALE];
     }
-    return n*DIVSCALE/sum_log1;
+    return n*DIVSCALE*ALPHASCALE/sum_log1;
 }
 
 double compute_xm(double *data, int n) {
